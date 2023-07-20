@@ -432,7 +432,7 @@ class PairBaseDataGenerator(tf.keras.utils.Sequence, metaclass=ABCMeta):
             # Save paths where the data is stored
             self.paths = data_paths
             self.data_paths = sorted(next(os.walk(data_paths[0]))[2])
-            self.data_mask_path = sorted(next(os.walk(data_paths[1]))[2])
+            self.data_gt_path = sorted(next(os.walk(data_paths[1]))[2])
             self.length = len(self.data_paths)
 
             self.first_no_bin_channel = -1
@@ -471,7 +471,7 @@ class PairBaseDataGenerator(tf.keras.utils.Sequence, metaclass=ABCMeta):
             # Y data analysis
             found = False
             # Loop over a few masks to ensure foreground class is present to decide normalization
-            for i in range(min(10,len(self.data_mask_path))):
+            for i in range(min(10,len(self.data_gt_path))):
                 _, mask = self.load_sample(i)
                 if self.normalizeY == 'as_mask':
                     # Store wheter all channels of the gt are binary or not (i.e. distance transform channel)
@@ -806,10 +806,10 @@ class PairBaseDataGenerator(tf.keras.utils.Sequence, metaclass=ABCMeta):
         else:
             if self.data_paths[idx].endswith('.npy'):
                 img = np.load(os.path.join(self.paths[0], self.data_paths[idx]))
-                mask = np.load(os.path.join(self.paths[1], self.data_mask_path[idx]))
+                mask = np.load(os.path.join(self.paths[1], self.data_gt_path[idx]))
             else:
                 img = imread(os.path.join(self.paths[0], self.data_paths[idx]))
-                mask = imread(os.path.join(self.paths[1], self.data_mask_path[idx]))
+                mask = imread(os.path.join(self.paths[1], self.data_gt_path[idx]))
             img = np.squeeze(img)
             mask = np.squeeze(mask)
             

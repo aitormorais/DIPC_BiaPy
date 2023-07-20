@@ -13,12 +13,12 @@ from engine.metrics import detection_metrics
 from engine.base_workflow import Base_Workflow
 
 class Detection(Base_Workflow):
-    def __init__(self, cfg, model, post_processing={}, original_test_mask_path=None):
+    def __init__(self, cfg, model, post_processing={}, original_test_gt_path=None):
         super().__init__(cfg, model, post_processing)
 
-        self.original_test_mask_path = original_test_mask_path    
+        self.original_test_gt_path = original_test_gt_path    
         if self.cfg.DATA.TEST.LOAD_GT or self.cfg.DATA.TEST.USE_VAL_AS_TEST:
-            self.csv_files = sorted(next(os.walk(original_test_mask_path))[2])
+            self.csv_files = sorted(next(os.walk(original_test_gt_path))[2])
         self.cell_count_file = os.path.join(self.cfg.PATHS.RESULT_DIR.PATH, 'cell_counter.csv')
         self.cell_count_lines = []
 
@@ -184,11 +184,11 @@ class Detection(Base_Workflow):
                 for ch, pred_coordinates in enumerate(all_points):
 
                     # Read the GT coordinates from the CSV file
-                    csv_filename = os.path.join(self.original_test_mask_path, os.path.splitext(filenames[0])[0]+'.csv')
+                    csv_filename = os.path.join(self.original_test_gt_path, os.path.splitext(filenames[0])[0]+'.csv')
                     if not os.path.exists(csv_filename):
                         print("WARNING: The CSV file seems to have different name than iamge. Using the CSV file "
                               "with the same position as the CSV in the directory. Check if it is correct!")
-                        csv_filename = os.path.join(self.original_test_mask_path, self.csv_files[f_numbers[0]])
+                        csv_filename = os.path.join(self.original_test_gt_path, self.csv_files[f_numbers[0]])
                         print("Its respective CSV file seems to be: {}".format(csv_filename))
                     print("Reading GT data from: {}".format(csv_filename))
                     df = pd.read_csv(csv_filename, index_col=0)     
@@ -328,7 +328,7 @@ def prepare_detection_data(cfg):
     print("############################\n"
           "#  PREPARE DETECTION DATA  #\n"
           "############################\n")
-    original_test_mask_path = None
+    original_test_gt_path = None
 
     # Create selected channels for train data
     if cfg.TRAIN.ENABLE or cfg.DATA.TEST.USE_VAL_AS_TEST:
@@ -390,8 +390,8 @@ def prepare_detection_data(cfg):
     if cfg.TEST.ENABLE and cfg.DATA.TEST.LOAD_GT:
         print("DATA.TEST.GT_PATH changed from {} to {}".format(cfg.DATA.TEST.GT_PATH, cfg.DATA.TEST.DETECTION_MASK_DIR))
         opts.extend(['DATA.TEST.GT_PATH', cfg.DATA.TEST.DETECTION_MASK_DIR])
-        original_test_mask_path = cfg.DATA.TEST.GT_PATH
+        original_test_gt_path = cfg.DATA.TEST.GT_PATH
     cfg.merge_from_list(opts)
     
 
-    return original_test_mask_path
+    return original_test_gt_path

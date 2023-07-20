@@ -8,7 +8,7 @@ from sklearn.model_selection import train_test_split, StratifiedKFold
 from utils.util import load_3d_images_from_dir
 
 
-def load_and_prepare_3D_data(train_path, train_mask_path, cross_val=False, cross_val_nsplits=5, cross_val_fold=1, 
+def load_and_prepare_3D_data(train_path, train_gt_path, cross_val=False, cross_val_nsplits=5, cross_val_fold=1, 
     val_split=0.1, seed=0, shuffle_val=True, crop_shape=(80, 80, 80, 1), y_upscaling=1, random_crops_in_DA=False, 
     ov=(0,0,0), padding=(0,0,0), minimum_foreground_perc=-1, reflect_to_complete_shape=False):
     """
@@ -19,7 +19,7 @@ def load_and_prepare_3D_data(train_path, train_mask_path, cross_val=False, cross
     train_path : str
         Path to the training data.
 
-    train_mask_path : str
+    train_gt_path : str
         Path to the training data masks.
 
     cross_val : bool, optional
@@ -91,7 +91,7 @@ def load_and_prepare_3D_data(train_path, train_mask_path, cross_val=False, cross
         # EXAMPLE 1
         # Case where we need to load the data and creating a validation split
         train_path = "data/train/x"
-        train_mask_path = "data/train/y"
+        train_gt_path = "data/train/y"
 
         # Train data is (15, 91, 1024, 1024) where (number_of_images, z, y, x), so each image shape should be this:
         img_train_shape = (91, 1024, 1024, 1)
@@ -99,7 +99,7 @@ def load_and_prepare_3D_data(train_path, train_mask_path, cross_val=False, cross
         train_3d_shape = (40, 256, 256, 1)
 
         X_train, Y_train, X_val,
-        Y_val, filenames = load_and_prepare_3D_data_v2(train_path, train_mask_path, train_3d_shape,
+        Y_val, filenames = load_and_prepare_3D_data_v2(train_path, train_gt_path, train_3d_shape,
                                                         val_split=0.1, shuffle_val=True, ov=(0,0,0))
 
         # The function will print the shapes of the generated arrays. In this example:
@@ -134,10 +134,10 @@ def load_and_prepare_3D_data(train_path, train_mask_path, cross_val=False, cross
     X_train, _, _, t_filenames = load_3d_images_from_dir(train_path, crop=crop, crop_shape=crop_shape,
         overlap=ov, padding=padding, return_filenames=True, reflect_to_complete_shape=reflect_to_complete_shape)
 
-    if train_mask_path is not None:
+    if train_gt_path is not None:
         print("1) Loading train masks . . .")
         scrop = (crop_shape[0], crop_shape[1]*y_upscaling, crop_shape[2]*y_upscaling, crop_shape[3])
-        Y_train, _, _ = load_3d_images_from_dir(train_mask_path, crop=crop, crop_shape=scrop, overlap=ov,
+        Y_train, _, _ = load_3d_images_from_dir(train_gt_path, crop=crop, crop_shape=scrop, overlap=ov,
             padding=padding, reflect_to_complete_shape=reflect_to_complete_shape, check_channel=False)
     else:
         Y_train = np.zeros(X_train.shape, dtype=np.float32) # Fake mask val

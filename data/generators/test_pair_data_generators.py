@@ -69,9 +69,9 @@ class test_pair_data_generator(tf.keras.utils.Sequence):
         if sample_ids is not None and self.data_path is not None:
             self.data_path = [x for i, x in enumerate(self.data_path) if i in sample_ids]
         if provide_Y:
-            self.data_mask_path = sorted(next(os.walk(dm_path))[2]) if Y is None else None
-            if sample_ids is not None and self.data_mask_path is not None:
-                self.data_mask_path = [x for i, x in enumerate(self.data_mask_path) if i in sample_ids]
+            self.data_gt_path = sorted(next(os.walk(dm_path))[2]) if Y is None else None
+            if sample_ids is not None and self.data_gt_path is not None:
+                self.data_gt_path = [x for i, x in enumerate(self.data_gt_path) if i in sample_ids]
         self.seed = seed
         self.ndim = ndim
         if X is None:
@@ -113,12 +113,12 @@ class test_pair_data_generator(tf.keras.utils.Sequence):
             if self.data_path[idx].endswith('.npy'):
                 img = np.load(os.path.join(self.d_path, self.data_path[idx]))
                 if self.provide_Y:
-                    mask = np.load(os.path.join(self.dm_path, self.data_mask_path[idx]))
+                    mask = np.load(os.path.join(self.dm_path, self.data_gt_path[idx]))
             else:
                 img = imread(os.path.join(self.d_path, self.data_path[idx]))
                 img = np.squeeze(img)
                 if self.provide_Y:
-                    mask = imread(os.path.join(self.dm_path, self.data_mask_path[idx]))
+                    mask = imread(os.path.join(self.dm_path, self.data_gt_path[idx]))
                     mask = np.squeeze(mask)  
         else:
             img = self.X[idx]

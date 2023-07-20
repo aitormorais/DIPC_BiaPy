@@ -744,8 +744,8 @@ def ensemble16_3d_predictions(vol, pred_func, batch_size_value=1, n_classes=1):
     return np.mean(out, axis=0)
 
 
-def calculate_optimal_mw_thresholds(model, data_path, data_mask_path, patch_size, mode="BC", distance_mask_path=None,
-                                    thres_small=5, bin_mask_path=None, use_minimum=False, chart_dir=None, verbose=True):
+def calculate_optimal_mw_thresholds(model, data_path, data_gt_path, patch_size, mode="BC", distance_gt_path=None,
+                                    thres_small=5, bin_gt_path=None, use_minimum=False, chart_dir=None, verbose=True):
     """Calculate the optimum values for the marked controlled watershed thresholds.
 
        Parameters
@@ -756,7 +756,7 @@ def calculate_optimal_mw_thresholds(model, data_path, data_mask_path, patch_size
        data_path : str
            Path to load the samples to infer.
 
-       data_mask_path : str
+       data_gt_path : str
            Path to load the mask samples.
 
        patch_size : : 4D tuple
@@ -769,7 +769,7 @@ def calculate_optimal_mw_thresholds(model, data_path, data_mask_path, patch_size
        thres_small : int, optional
            Theshold to remove small objects in the mask and the prediction.
 
-       bin_mask_path : str, optional
+       bin_gt_path : str, optional
            Path of the binary masks to apply to the prediction. Useful to remove segmentation outside the masks.
            If ``None``, no mask is applied.
 
@@ -801,12 +801,12 @@ def calculate_optimal_mw_thresholds(model, data_path, data_mask_path, patch_size
     """
 
     assert mode in ['BC', 'BCD']
-    if mode == 'BCD' and distance_mask_path is None:
-        raise ValueError("distance_mask_path needs to be not None when mode is 'BCD'")
+    if mode == 'BCD' and distance_gt_path is None:
+        raise ValueError("distance_gt_path needs to be not None when mode is 'BCD'")
     if verbose:
         print("Calculating the best thresholds for the mark controlled watershed . . .")
     ids = sorted(next(os.walk(data_path))[2])
-    mask_ids = sorted(next(os.walk(data_mask_path))[2])
+    mask_ids = sorted(next(os.walk(data_gt_path))[2])
     ths = [1e-06, 5e-06, 1e-05, 5e-05, 1e-04, 5e-04, 1e-03, 5e-03, 1e-02, 5e-02]
     ths.extend(np.round(np.arange(0.1, 1.0, 0.05),3))
 
@@ -829,13 +829,13 @@ def calculate_optimal_mw_thresholds(model, data_path, data_mask_path, patch_size
 
     if mode == 'BCD':
         print("Calculating the max distance value first. . ")
-        dis_mask_ids = sorted(next(os.walk(distance_mask_path))[2])
+        dis_mask_ids = sorted(next(os.walk(distance_gt_path))[2])
         max_distance = 0
         for i in tqdm(range(len(ids))):
             if dis_mask_ids[i].endswith('.npy'):
-                mask = np.load(os.path.join(distance_mask_path, dis_mask_ids[i]))
+                mask = np.load(os.path.join(distance_gt_path, dis_mask_ids[i]))
             else:
-                mask = imread(os.path.join(distance_mask_path, dis_mask_ids[i]))
+                mask = imread(os.path.join(distance_gt_path, dis_mask_ids[i]))
             if mask.shape[-1] != 3:
                 raise ValueError("Expected a 3-channel data to be loaded and not {}".format(mask.shape))
             m = np.max(mask[...,2])
@@ -861,9 +861,9 @@ def calculate_optimal_mw_thresholds(model, data_path, data_mask_path, patch_size
                 _img = _img.astype(np.uint8)
 
         if mask_ids[i].endswith('.npy'):
-            _mask = np.load(os.path.join(data_mask_path, mask_ids[i]))
+            _mask = np.load(os.path.join(data_gt_path, mask_ids[i]))
         else:
-            _mask = imread(os.path.join(data_mask_path, mask_ids[i]))
+            _mask = imread(os.path.join(data_gt_path, mask_ids[i]))
         _mask = np.squeeze(_mask)
         if len(_img.shape) == 3:
             _img = np.expand_dims(_img, axis=-1)
@@ -900,8 +900,8 @@ def calculate_optimal_mw_thresholds(model, data_path, data_mask_path, patch_size
                 if np.max(img) > 30: img = img/255
                 pred = model.predict(img, verbose=0)
 
-                if bin_mask_path is not None:
-                    pred = apply_binary_mask(pred, bin_mask_path)
+                if bin_gt_path is not None:
+                    pred = apply_binary_mask(pred, bin_gt_path)
 
                 # TH_FOREGROUND and TH_DIST_FOREGROUND:
                 # Look at the best IoU compared with the original label. Only the region that involve the object is taken

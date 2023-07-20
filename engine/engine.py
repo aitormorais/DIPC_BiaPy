@@ -24,7 +24,7 @@ class Engine(object):
         self.cfg = cfg
         self.job_identifier = job_identifier
         self.original_test_path = None
-        self.original_test_mask_path = None
+        self.original_test_gt_path = None
         self.test_mask_filenames = None
         self.cross_val_samples_ids = None
         self.post_processing = {}
@@ -33,9 +33,9 @@ class Engine(object):
 
         # Save paths in case we need them in a future
         self.orig_train_path = cfg.DATA.TRAIN.PATH
-        self.orig_train_mask_path = cfg.DATA.TRAIN.GT_PATH
+        self.orig_train_gt_path = cfg.DATA.TRAIN.GT_PATH
         self.orig_val_path = cfg.DATA.VAL.PATH
-        self.orig_val_mask_path = cfg.DATA.VAL.GT_PATH
+        self.orig_val_gt_path = cfg.DATA.VAL.GT_PATH
 
         print("####################\n"
               "#  PRE-PROCESSING  #\n"
@@ -58,9 +58,9 @@ class Engine(object):
                 else:
                     check_masks(cfg.DATA.TEST.GT_PATH, n_classes=cfg.MODEL.N_CLASSES+1)
         elif cfg.PROBLEM.TYPE == 'INSTANCE_SEG':
-            self.original_test_path, self.original_test_mask_path = prepare_instance_data(cfg)
+            self.original_test_path, self.original_test_gt_path = prepare_instance_data(cfg)
         elif cfg.PROBLEM.TYPE == 'DETECTION':
-            self.original_test_mask_path = prepare_detection_data(cfg)
+            self.original_test_gt_path = prepare_detection_data(cfg)
         elif cfg.PROBLEM.TYPE == 'SELF_SUPERVISED':
             prepare_ssl_data(cfg)
 
@@ -78,11 +78,11 @@ class Engine(object):
         if cfg.TRAIN.ENABLE:
             if cfg.PROBLEM.TYPE in ['SEMANTIC_SEG', 'INSTANCE_SEG', 'DETECTION', 'DENOISING', 'SUPER_RESOLUTION', 'SELF_SUPERVISED']:
                 if cfg.DATA.TRAIN.IN_MEMORY:
-                    mask_path = cfg.DATA.TRAIN.GT_PATH if cfg.PROBLEM.TYPE != 'DENOISING' else None
+                    gt_path = cfg.DATA.TRAIN.GT_PATH if cfg.PROBLEM.TYPE != 'DENOISING' else None
                     val_split = cfg.DATA.VAL.SPLIT_TRAIN if cfg.DATA.VAL.FROM_TRAIN else 0.
                     f_name = load_and_prepare_2D_train_data if cfg.PROBLEM.NDIM == '2D' else load_and_prepare_3D_data
 
-                    objs = f_name(cfg.DATA.TRAIN.PATH, mask_path, cross_val=cfg.DATA.VAL.CROSS_VAL, 
+                    objs = f_name(cfg.DATA.TRAIN.PATH, gt_path, cross_val=cfg.DATA.VAL.CROSS_VAL, 
                         cross_val_nsplits=cfg.DATA.VAL.CROSS_VAL_NFOLD, cross_val_fold=cfg.DATA.VAL.CROSS_VAL_FOLD, 
                         val_split=val_split, seed=cfg.SYSTEM.SEED, shuffle_val=cfg.DATA.VAL.RANDOM, 
                         random_crops_in_DA=cfg.DATA.EXTRACT_RANDOM_PATCH, crop_shape=cfg.DATA.PATCH_SIZE, 
@@ -180,7 +180,7 @@ class Engine(object):
                     
                     self.test_filenames = [x for i, x in enumerate(self.test_filenames) if i in self.cross_val_samples_ids]
                     self.original_test_path = self.orig_train_path
-                    self.original_test_mask_path = self.orig_train_mask_path
+                    self.original_test_gt_path = self.orig_train_gt_path
             elif cfg.PROBLEM.TYPE == 'CLASSIFICATION':
                 f_name = load_data_classification if cfg.PROBLEM.NDIM == '2D' else load_3d_data_classification
                 X_test, Y_test, self.test_filenames, self.class_names = f_name(cfg, test=True)
@@ -251,14 +251,14 @@ class Engine(object):
                 self.post_processing['instance_post'] = True
             else:
                 self.post_processing['instance_post'] = False
-            workflow = Instance_Segmentation(self.cfg, self.model, self.post_processing, self.original_test_mask_path)
+            workflow = Instance_Segmentation(self.cfg, self.model, self.post_processing, self.original_test_gt_path)
         elif self.cfg.PROBLEM.TYPE == 'DETECTION':
             # Specific detection post-processing
             if self.cfg.TEST.POST_PROCESSING.DET_WATERSHED or self.cfg.TEST.POST_PROCESSING.REMOVE_CLOSE_POINTS:
                 self.post_processing['detection_post'] = True
             else:
                 self.post_processing['detection_post'] = False
-            workflow = Detection(self.cfg, self.model, self.post_processing, self.original_test_mask_path)
+            workflow = Detection(self.cfg, self.model, self.post_processing, self.original_test_gt_path)
         elif self.cfg.PROBLEM.TYPE == 'CLASSIFICATION':
             workflow = Classification(self.cfg, self.model, self.class_names, self.post_processing)
         elif self.cfg.PROBLEM.TYPE == 'SUPER_RESOLUTION':

@@ -14,12 +14,12 @@ from utils.matching import matching, wrapper_matching_dataset_lazy
 from engine.base_workflow import Base_Workflow
 
 class Instance_Segmentation(Base_Workflow):
-    def __init__(self, cfg, model, post_processing={}, original_test_mask_path=None):
+    def __init__(self, cfg, model, post_processing={}, original_test_gt_path=None):
         super().__init__(cfg, model, post_processing)
 
-        self.original_test_mask_path = original_test_mask_path 
+        self.original_test_gt_path = original_test_gt_path 
         if self.cfg.DATA.TEST.LOAD_GT or self.cfg.DATA.TEST.USE_VAL_AS_TEST:
-            self.original_test_mask_ids = sorted(next(os.walk(self.original_test_mask_path))[2])
+            self.original_test_mask_ids = sorted(next(os.walk(self.original_test_gt_path))[2])
         self.all_matching_stats = []
         self.post_processing = post_processing
 
@@ -40,7 +40,7 @@ class Instance_Segmentation(Base_Workflow):
             else:
                 bin_mask = None
             obj = calculate_optimal_mw_thresholds(self.model, self.cfg.DATA.VAL.PATH,
-                self.orig_val_mask_path, self.cfg.DATA.PATCH_SIZE, self.cfg.PROBLEM.INSTANCE_SEG.DATA_CHANNELS,
+                self.orig_val_gt_path, self.cfg.DATA.PATCH_SIZE, self.cfg.PROBLEM.INSTANCE_SEG.DATA_CHANNELS,
                 self.cfg.DATA.VAL.GT_PATH, self.cfg.PROBLEM.INSTANCE_SEG.DATA_REMOVE_SMALL_OBJ, bin_mask,
                 chart_dir=self.cfg.PATHS.CHARTS, verbose=self.cfg.TEST.VERBOSE)
             if self.cfg.PROBLEM.INSTANCE_SEG.DATA_CHANNELS == "BCD":
@@ -80,10 +80,10 @@ class Instance_Segmentation(Base_Workflow):
                 del Y
                 _Y = np.zeros(w_pred.shape, dtype=w_pred.dtype)
                 for i in range(len(self.original_test_mask_ids)):
-                    test_file = os.path.join(self.original_test_mask_path, self.original_test_mask_ids[i])
+                    test_file = os.path.join(self.original_test_gt_path, self.original_test_mask_ids[i])
                     _Y[i] = imread(test_file).squeeze()
             else:
-                test_file = os.path.join(self.original_test_mask_path, self.original_test_mask_ids[f_numbers[0]])
+                test_file = os.path.join(self.original_test_gt_path, self.original_test_mask_ids[f_numbers[0]])
                 _Y = imread(test_file).squeeze()
 
             if _Y.ndim == 2: _Y = np.expand_dims(_Y,0)
@@ -272,7 +272,7 @@ def prepare_instance_data(cfg):
     print("###########################\n"
            "#  PREPARE INSTANCE DATA  #\n"
            "###########################\n")
-    original_test_path, original_test_mask_path = None, None
+    original_test_path, original_test_gt_path = None, None
 
     # Create selected channels for train data
     if (cfg.TRAIN.ENABLE or cfg.DATA.TEST.USE_VAL_AS_TEST) and (not os.path.isdir(cfg.DATA.TRAIN.INSTANCE_CHANNELS_DIR) or \
@@ -319,8 +319,8 @@ def prepare_instance_data(cfg):
         if cfg.DATA.TEST.LOAD_GT:
             print("DATA.TEST.GT_PATH changed from {} to {}".format(cfg.DATA.TEST.GT_PATH, cfg.DATA.TEST.INSTANCE_CHANNELS_MASK_DIR))
             opts.extend(['DATA.TEST.GT_PATH', cfg.DATA.TEST.INSTANCE_CHANNELS_MASK_DIR])
-        original_test_mask_path = cfg.DATA.TEST.GT_PATH
+        original_test_gt_path = cfg.DATA.TEST.GT_PATH
     cfg.merge_from_list(opts)
 
-    return original_test_path, original_test_mask_path
+    return original_test_path, original_test_gt_path
 
