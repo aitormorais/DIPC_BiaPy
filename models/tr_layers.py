@@ -256,7 +256,7 @@ class TransformerBlock(layers.Layer):
         super().__init__(*args, **kwargs)
         self.num_heads = num_heads
         self.mlp_dim = mlp_dim
-        self.dropout = dropout
+        self.dropout = dropout[0]
 
     def build(self, input_shape):
         self.att = MultiHeadSelfAttention(
@@ -285,6 +285,7 @@ class TransformerBlock(layers.Layer):
         self.layernorm2 = layers.LayerNormalization(
             epsilon=1e-6, name="LayerNorm_2"
         )
+        
         self.dropout_layer = layers.Dropout(self.dropout)
 
     def call(self, inputs, training):
