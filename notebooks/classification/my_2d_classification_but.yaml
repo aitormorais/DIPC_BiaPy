@@ -1,0 +1,47 @@
+SYSTEM:
+    NUM_CPUS: -1
+
+PROBLEM:
+    TYPE: CLASSIFICATION
+    NDIM: 2D
+  
+DATA: 
+    PATCH_SIZE: (224, 224, 3)
+    CHECK_GENERATORS: False
+    TRAIN:                                                                                                              
+        PATH: /content/data/train
+        IN_MEMORY: True
+    VAL:
+        FROM_TRAIN: True
+        IN_MEMORY: True
+        CROSS_VAL: False
+        RANDOM: True
+        SPLIT_TRAIN: 0.5
+        RANDOM: True
+        
+    TEST:                                                                                                               
+        IN_MEMORY: False
+        LOAD_GT: False
+        PATH: /content/data/test
+
+AUGMENTOR:
+    ENABLE: True
+    RANDOM_ROT: True
+    VFLIP: True
+    HFLIP: True
+
+MODEL:
+    ARCHITECTURE: simple_cnn
+    N_CLASSES: 75
+    LOAD_CHECKPOINT: False
+
+TRAIN:
+    ENABLE: True
+    OPTIMIZER: ADAM
+    LR: 1.E-4
+    BATCH_SIZE: 6
+    EPOCHS: 100
+    PATIENCE: 20
+  
+TEST:
+    ENABLE: True

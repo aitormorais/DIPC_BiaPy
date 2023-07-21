@@ -1,0 +1,44 @@
+AUGMENTOR:
+  ENABLE: true
+  HFLIP: true
+  RANDOM_ROT: true
+  VFLIP: true
+DATA:
+  CHECK_GENERATORS: false
+  PATCH_SIZE: (28, 28, 28, 1)
+  TEST:
+    IN_MEMORY: false
+    LOAD_GT: false
+    PADDING: (3, 3, 3)
+    PATH: /content/data/test
+  TRAIN:
+    IN_MEMORY: true
+    PATH: /content/data/train
+  VAL:
+    FROM_TRAIN: false
+    PATH: /content/data/validation
+    SPLIT_TRAIN: 0.1
+MODEL:
+  ARCHITECTURE: ViT
+  LOAD_CHECKPOINT: false
+  N_CLASSES: 11
+  SPATIAL_DROPOUT: true
+  VIT_HIDDEN_SIZE: 768
+  VIT_MLP_DIMS: 3072
+  VIT_NUM_HEADS: 12
+  VIT_NUM_LAYERS: 12
+  VIT_TOKEN_SIZE: 16
+PROBLEM:
+  NDIM: 3D
+  TYPE: CLASSIFICATION
+SYSTEM:
+  NUM_CPUS: -1
+TEST:
+  ENABLE: true
+TRAIN:
+  BATCH_SIZE: 8
+  ENABLE: true
+  EPOCHS: 3
+  LR: 0.0001
+  OPTIMIZER: ADAMW
+  PATIENCE: 20
