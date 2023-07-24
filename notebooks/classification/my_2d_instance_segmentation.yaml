@@ -1,0 +1,48 @@
+AUGMENTOR:
+  ENABLE: true
+  HFLIP: true
+  RANDOM_ROT: true
+  VFLIP: true
+DATA:
+  CHECK_GENERATORS: false
+  PATCH_SIZE: (256, 256, 1)
+  TEST:
+    GT_PATH: /content/data/test/y
+    IN_MEMORY: true
+    LOAD_GT: true
+    PADDING: (32, 32)
+    PATH: /content/data/test/x
+  TRAIN:
+    GT_PATH: /content/data/train/y
+    IN_MEMORY: true
+    PATH: /content/data/train/x
+  VAL:
+    FROM_TRAIN: true
+    SPLIT_TRAIN: 0.1
+MODEL:
+  ARCHITECTURE: unetr
+  LOAD_CHECKPOINT: false
+PROBLEM:
+  INSTANCE_SEG:
+    DATA_CHANNELS: BC
+    DATA_MW_TH_BINARY_MASK: 0.2
+    DATA_MW_TH_CONTOUR: 0.1
+    DATA_MW_TH_FOREGROUND: 0.3
+  NDIM: 2D
+  TYPE: INSTANCE_SEG
+SYSTEM:
+  NUM_CPUS: 1
+TEST:
+  AUGMENTATION: false
+  ENABLE: true
+  STATS:
+    FULL_IMG: false
+    MERGE_PATCHES: true
+    PER_PATCH: true
+TRAIN:
+  BATCH_SIZE: 8
+  ENABLE: true
+  EPOCHS: 4
+  LR: 0.0001
+  OPTIMIZER: ADAM
+  PATIENCE: 20

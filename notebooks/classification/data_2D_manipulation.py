@@ -1,16 +1,38 @@
 from re import X
 import numpy as np
 import os
+import cv2
 import math
 from tqdm import tqdm
 from skimage.io import imread
 from sklearn.model_selection import train_test_split, StratifiedKFold
 from PIL import Image
-
+import pandas as pd
 from utils.util import load_data_from_dir
 from data.pre_processing import normalize
+def img_prepoces(ruta, tupla):
+    """
+    Función para leer, convertir y redimensionar una imagen utilizando OpenCV.
 
-def load_and_prepare_2D_train_data(train_path, train_gt_path, cross_val=False, cross_val_nsplits=5, cross_val_fold=1,
+    Parámetros:
+    - ruta (str): Una cadena que representa la ruta del archivo de imagen a procesar.
+    - tupla (tuple): Un tuple que contiene dos elementos que representan la altura y el ancho (respectivamente) a los que se debe redimensionar la imagen.
+
+    Devoluciones:
+    - ndarray: Una matriz Numpy que representa la imagen procesada y normalizada.
+
+    Esta función realiza los siguientes pasos:
+    1. Lee la imagen de la ruta especificada usando `cv2.imread()`.
+    2. Convierte la imagen de BGR a RGB usando `cv2.cvtColor()`.
+    3. Redimensiona la imagen al tamaño especificado por la tupla usando `cv2.resize()`.
+    4. Normaliza la imagen dividiéndola por 255. Esto se hace para cambiar los valores de los píxeles de la imagen de 0-255 a 0-1, un rango más adecuado para el entrenamiento de modelos de red neuronal.
+    """
+    img = cv2.imread(ruta)
+    if img is None:
+        print(f"Couldn't read the image at {ruta}.")
+        return None
+    return cv2.resize(cv2.cvtColor(img, cv2.COLOR_BGR2RGB), (tupla[0], tupla[1])) / 255
+def load_and_prepare_2D_train_data(train_path, train_mask_path, cross_val=False, cross_val_nsplits=5, cross_val_fold=1,
     val_split=0.1, seed=0, shuffle_val=True, num_crops_per_dataset=0, random_crops_in_DA=False, crop_shape=None, 
     y_upscaling=1, ov=(0,0), padding=(0,0), minimum_foreground_perc=-1, reflect_to_complete_shape=False):
     """
@@ -21,7 +43,7 @@ def load_and_prepare_2D_train_data(train_path, train_gt_path, cross_val=False, c
     train_path : str
         Path to the training data.
 
-    train_gt_path : str
+    train_mask_path : str
         Path to the training data masks.
 
     cross_val : bool, optional
@@ -94,13 +116,13 @@ def load_and_prepare_2D_train_data(train_path, train_gt_path, cross_val=False, c
         # EXAMPLE 1
         # Case where we need to load the data (creating a validation split)
         train_path = "data/train/x"
-        train_gt_path = "data/train/y"
+        train_mask_path = "data/train/y"
 
         # Original image shape is (1024, 768, 165), so each image shape should be this:
         img_train_shape = (1024, 768, 1)
 
         X_train, Y_train, X_val,
-        Y_val, crops_made = load_and_prepare_2D_data(train_path, train_gt_path, img_train_shape, val_split=0.1,
+        Y_val, crops_made = load_and_prepare_2D_data(train_path, train_mask_path, img_train_shape, val_split=0.1,
             shuffle_val=True, make_crops=False)
 
 
@@ -114,7 +136,7 @@ def load_and_prepare_2D_train_data(train_path, train_gt_path, cross_val=False, c
         # EXAMPLE 2
         # Same as the first example but creating patches of (256x256)
         X_train, Y_train, X_val,
-        Y_val, crops_made = load_and_prepare_2D_data(train_path, train_gt_path, img_train_shape, val_split=0.1,
+        Y_val, crops_made = load_and_prepare_2D_data(train_path, train_mask_path, img_train_shape, val_split=0.1,
             shuffle_val=True, make_crops=True, crop_shape=(256, 256, 1))
 
         # The function will print the shapes of the generated arrays. In this example:
@@ -147,10 +169,10 @@ def load_and_prepare_2D_train_data(train_path, train_gt_path, cross_val=False, c
     print("0) Loading train images . . .")
     X_train, orig_train_shape, _, t_filenames = load_data_from_dir(train_path, crop=crop, crop_shape=crop_shape, overlap=ov,
         padding=padding, return_filenames=True, reflect_to_complete_shape=reflect_to_complete_shape)
-    if train_gt_path is not None:                                            
+    if train_mask_path is not None:                                            
         print("1) Loading train masks . . .")
         scrop = (crop_shape[0]*y_upscaling, crop_shape[1]*y_upscaling, crop_shape[2])
-        Y_train, _, _, _ = load_data_from_dir(train_gt_path, crop=crop, crop_shape=scrop, overlap=ov, padding=padding, 
+        Y_train, _, _, _ = load_data_from_dir(train_mask_path, crop=crop, crop_shape=scrop, overlap=ov, padding=padding, 
             return_filenames=True, check_channel=False, reflect_to_complete_shape=reflect_to_complete_shape)
     else:
         Y_train = np.zeros(X_train.shape[:-1]+(X_train.shape[-1]*2,), dtype=np.float32) # Fake mask val
@@ -813,6 +835,7 @@ def load_data_classification(cfg, test=False):
             Y_data_npy_file = os.path.join(path, '../npy_data_for_classification', 'Y_val'+f_info+'.npy')
 
     class_names = sorted(next(os.walk(path))[1])
+    print("NOMBRES: ",class_names)
     if not os.path.exists(X_data_npy_file):
         print("Seems to be the first run as no data is prepared. Creating .npy files: {}".format(X_data_npy_file))
         if not test:
@@ -822,7 +845,21 @@ def load_data_classification(cfg, test=False):
         X_data, Y_data = [], []
         buter = True
         if buter:
-            print("si")
+            os.chdir("..")
+            os.chdir("/content/data")
+            print("aqui estamos!!!",os.getcwd())
+            train = pd.read_csv('/content/data/Training_set.csv')
+            #print("ESTO MIDE : ",len(train))
+            #x_train = round(len(train)*0.8)
+            #x_train, y_train, x_val, y_val = [], [], [], []
+            
+            for index, row in tqdm(train.iterrows()):
+              foto = row['filename']
+              clase = row['label']
+              X_data.append(img_prepoces("/content/data/train/" + foto,(224,224)))  # Agregar la ruta de la imagen a x_train
+              Y_data.append(clase) 
+            print(train.head(2))
+            nombres = sorted(train['label'].unique())
         for c_num, folder in enumerate(class_names):
             print("Analizing folder {}".format(os.path.join(path,folder)))
             ids = sorted(next(os.walk(os.path.join(path,folder)))[2])
